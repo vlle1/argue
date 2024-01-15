@@ -16,7 +16,7 @@ async fn main() {
     .init();
 
     let static_service =
-        ServeDir::new("./frontend-build").fallback(ServeFile::new("./frontend-build/index.html"));
+        ServeDir::new("../argue-react/build").fallback(ServeFile::new("../argue-react/build/index.html"));
     let router = Router::new()
         .route("/ws", get(socket_handler::ws_route_handler))
         .nest_service("/", get(get_service(static_service)));
