@@ -83,7 +83,7 @@ function toGraphData(state: ServerGameState): GraphData {
 
 const Game = ({ root_statement }: { root_statement: string }) => {
   // get address from env
-  const address = process.env.WEBSOCKET_URL || `wss://argue.kobert.dev/ws`;
+  const address = process.env.REACT_APP_WEBSOCKET_URL as string;
   const [socketUrl, setSocketUrl] = useState(address);
   const { sendJsonMessage, readyState, lastJsonMessage } = useWebSocket(
     socketUrl,

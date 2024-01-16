@@ -1,3 +1,4 @@
+use std::env;
 use std::result::Result;
 use std::time::Instant;
 
@@ -113,6 +114,10 @@ impl GameState {
             tree: TreeState::new(root_statement),
             ai: AI {
                 cooldown_until: Instant::now(),
+                max_ai_cooldown_seconds: env::var("MAX_AI_COOLDOWN_SECONDS")
+                    .expect("MAX_AI_COOLDOWN_SECONDS not in env")
+                    .parse::<u64>()
+                    .expect("MAX_AI_COOLDOWN_SECONDS must be a number."),
             },
             messenger,
         }
@@ -165,7 +170,7 @@ impl GameState {
     }
 
     pub async fn prove_direct(&mut self, id: Index, tree_changed: &mut bool) -> Result<(), ProofError> {
-        self.messenger.send_cooldown(MAX_AI_COOLDOWN_SECONDS).await;
+        self.messenger.send_cooldown(self.ai.max_ai_cooldown_seconds).await;
         match self.ai.check_statement(self.tree.get_statement(id)?).await {
             Ok(explanation) => {
                 self.tree.set_directly_proven(id);
@@ -179,7 +184,7 @@ impl GameState {
         Ok(())
     }
     pub async fn prove_implication(&mut self, id: Index, tree_changed: &mut bool) -> Result<(), ProofError> {
-        self.messenger.send_cooldown(MAX_AI_COOLDOWN_SECONDS).await;
+        self.messenger.send_cooldown(self.ai.max_ai_cooldown_seconds).await;
         let conclusion = self.tree.get_statement(id)?;
         let premises = self.tree.get_premises(id)?;
         if premises.len() == 0 {
@@ -202,9 +207,9 @@ impl GameState {
 
 struct AI {
     cooldown_until: Instant,
+    max_ai_cooldown_seconds: u64,
 }
 
-const MAX_AI_COOLDOWN_SECONDS: u64 = 15;
 const SYSTEM_MESSAGE_DIRECT: &str = "The User will give you a statement. Begin your answer with '[TRUE]', if you consider the statement to be objectively correct. If not, begin your answer with '[FALSE]' and then provide an explanation.\n
 Important:\n
 - Always use this format for your answer.\n
@@ -226,7 +231,7 @@ impl AI {
         }
         //set cooldown for the next 15 seconds.
         self.cooldown_until =
-            Instant::now() + std::time::Duration::from_secs(MAX_AI_COOLDOWN_SECONDS);
+            Instant::now() + std::time::Duration::from_secs(self.max_ai_cooldown_seconds);
 
         Ok(())
     }
