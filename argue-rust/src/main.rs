@@ -16,7 +16,6 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::TRACE)
         .init();
-
     let static_service = ServeDir::new("./argue-react/build")
         .fallback(ServeFile::new("./argue-react/build/index.html"));
     let router = Router::new()
