@@ -1,5 +1,5 @@
 import { ForceGraph2D } from "react-force-graph";
-import { css_val, distance } from "../util/util";
+import { css_val } from "../util/util";
 import { StatementState } from "./Game";
 import { useEffect, useState } from "react";
 
@@ -53,20 +53,16 @@ function nodeColor(node: Node): string {
   switch (node.state) {
     case "DirectlyProven": {
       return css_val("--fact-color");
-      break;
     }
     case "ImpliedProven": {
       return css_val("--implied-proven-color");
-      break;
     }
     case "ImpliedUnproven": {
       return css_val("--implied-unproven-color");
-      break;
     }
     case "None": {
       return css_val("--none-color");
-      break;
-    }
+      }
   }
 }
 function edgeState(
@@ -77,7 +73,7 @@ function edgeState(
     return "implied-proven";
   }
   if (target.state === "ImpliedUnproven") {
-    if (source.state === "ImpliedProven" || source.state === "DirectlyProven" ) {
+    if (source.state === "ImpliedProven" || source.state === "DirectlyProven") {
       return "implied-proven";
     } else return "implied-unproven";
   }
@@ -139,12 +135,13 @@ const Canvas = ({
         ctx.fillStyle = color;
         const bckgDimensions = node.__bckgDimensions;
         let padding = 10;
-        bckgDimensions && ctx.fillRect(
-          (node.x || 0) - bckgDimensions[0] / 2 - padding,
-          (node.y || 0) - bckgDimensions[1] / 2 - padding,
-          bckgDimensions[0] + 2 * padding,
-          bckgDimensions[1] + 2 * padding
-        );
+        bckgDimensions &&
+          ctx.fillRect(
+            (node.x || 0) - bckgDimensions[0] / 2 - padding,
+            (node.y || 0) - bckgDimensions[1] / 2 - padding,
+            bckgDimensions[0] + 2 * padding,
+            bckgDimensions[1] + 2 * padding
+          );
       }}
       onNodeRightClick={(node, e) => onNodeRightClick(e, node.id)}
       onNodeClick={(node, e) => {
@@ -156,7 +153,7 @@ const Canvas = ({
         } else {
           if (selected) {
             if (selected.id != node.id) {
-              linkNodes(selected.id, node.id)
+              linkNodes(selected.id, node.id);
             } else {
               directProve(node.id);
             }
@@ -193,7 +190,7 @@ const Canvas = ({
       linkDirectionalParticleColor={(link) => {
         let source = link.source as Node;
         let target = link.target as Node;
-        return css_val(`--${edgeState(source, target)}-color`);;
+        return css_val(`--${edgeState(source, target)}-color`);
       }}
       linkDirectionalParticleSpeed={(link) => {
         //proven > implied > none
@@ -212,9 +209,7 @@ const Canvas = ({
         let source = link.source as Node;
         let target = link.target as Node;
         return edgeState(source, target) == "none" ? 3 : 5;
-      }
-        
-      }
+      }}
       linkCurvature={0.1}
     />
   );

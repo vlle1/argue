@@ -1,6 +1,4 @@
 import React from 'react';
-import { ForceGraph2D } from 'react-force-graph';
-import logo from './logo.svg';
 import './App.css';
 import Game from './game/Game';
 import { useState } from "react";
@@ -19,6 +17,7 @@ const LandingPage = ({setStatement}: {setStatement: React.Dispatch<React.SetStat
   return (
     <div className="LandingPage">
       <h1>Welcome to argue-GPT!</h1>
+      { process.env.TESTVAR }
       <p>Enter a statement you want to argue for...</p>
       <form
         onSubmit={(e) => {

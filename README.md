@@ -2,23 +2,21 @@
 A web-app where you prove statements using logic and chat-gpt.\
 The frontend uses react-force-graph to visualize the statements and their relations.
 
-## Client (argue-react)
 ### Setup:
-1. Install nodejs
-2. `npm install`
-3. configure .env / websocket address in Game.tsx:86
+1. Dependencies: npm, rust
+2. in `.\argue-react`:
+   1. `npm install`
+   2. configure .env
+   3. `npm run build`
+3. configure .env
+4. Put your openai api key in new file `openai.key`
 
-### Develop: `npm start`
+### run Client only
+run `npm start` in argue-react
 
-### Production: `npm run build`
-Note that this frontend depends on a corresponding backend to handle the websocket requests and the game logic, including consulting chat-gpt.
+### run Server
+run `cargo run` in root folder
 
-## Server (argue-rust)
-## Setup
-1. Dependency: rust
-2. Put your openai api key in `openai.key`
-3. Configuration: SOCKET_ADRESS in `src/main.rs`
-4. `cargo run`
 
 ## Documentation
 
