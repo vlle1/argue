@@ -50,7 +50,7 @@ const LandingPage = ({setStatement, setPrivatePad}: {setStatement: React.Dispatc
       <p><strong>Right-click edge</strong> to remove the edge.</p>
       <p>See, if you can convince the AI of your root statement!</p>
       <h2>NOTE</h2>
-      <p>This is a PROTOTYPE, further UI may be added. <strong>Open the console</strong>, as some important information (f.ex. AI responses) is only printed there!</p>
+      <p>This is a PROTOTYPE, further UI may be added. <strong>Open the console</strong>, as some important information (e.g. AI responses) is only printed there!</p>
     </div>
   );
 }
