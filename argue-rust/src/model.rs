@@ -8,7 +8,7 @@ use generational_arena::Index;
 use serde::Deserialize;
 use serde::Serialize;
 
-use self::messenger::Messenger;
+use self::messenger::BroadcastMessenger;
 use self::messenger::PlayerId;
 use self::proof::ProofError;
 use self::proof::ProofState;
@@ -62,11 +62,11 @@ pub enum ClientMessage {
 pub struct GameState {
     tree: TreeState,
     ai: AI,
-    pub messenger: dyn Messenger,
+    pub messenger: BroadcastMessenger,
 }
 
 impl GameState {
-    pub fn new(root_statement: String, messenger: dyn Messenger) -> Self {
+    pub fn new(root_statement: String, messenger: BroadcastMessenger) -> Self {
         Self {
             tree: TreeState::new(root_statement),
             ai: AI {

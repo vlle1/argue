@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     routing::{get, get_service},
-    Router, extract::State,
+    Router,
 };
 use tokio::sync::Mutex;
 use tower_http::services::{ServeDir, ServeFile};
@@ -19,14 +19,14 @@ async fn main() {
     dotenv().ok();
 
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
+        .with_max_level(tracing::Level::INFO)
         .init();
     let static_service = ServeDir::new("./argue-react/build")
         .fallback(ServeFile::new("./argue-react/build/index.html"));
     let router = Router::new()
         .route("/ws", get(socket_handler::ws_route_handler))
         .nest_service("/", get(get_service(static_service)))
-        .with_state(State::new(Arc::new(Mutex::new(AppState::default()))));
+        .with_state(Arc::new(Mutex::new(AppState::new())));
     //output the address
     //println!("WS: Listening on: ws://{}/ws", SOCKET_ADRESS);
     let ws_port = std::env::var("WS_PORT").unwrap();
