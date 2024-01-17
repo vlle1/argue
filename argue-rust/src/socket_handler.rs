@@ -69,7 +69,7 @@ async fn handle_socket(
     state: Arc<Mutex<AppState>>,
 ) {
     use futures_util::stream::StreamExt;
-    println!("handle socket with {}, {}", root_statement, private);
+    //println!("handle socket with {}, {}", root_statement, private);
     let (sender, mut receiver) = socket.split();
     //gamestate
     let (game_state, player_id) = if private {
