@@ -1,12 +1,12 @@
 :root {
   --background: rgb(244, 244, 244);
   --text: #232323;
-  --node-bg: rgb(244, 244, 244);
+  --node-bg: rgb(213, 213, 213);
   --selected-node-bg: #24a0e2;
   --fact-color: #0bdc00;
   --none-color: #1f1f1f;
-  --implied-unproven-color: #0825ff;
-  --implied-proven-color: #149061;
+  --implied-unproven-color: #8190ff;
+  --implied-proven-color: #36b785;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -66,4 +66,26 @@ body {
 }
 .abs-in:focus {
   outline: none;
+}
+
+input.landing_submit {
+  color: var(--text);
+  background-color: var(--implied-unproven-color);
+  font-size: 1.2rem;
+  padding: 1.5rem;
+  text-align: left;
+  border: none;
+}
+input.landing_submit:hover {
+  background-color: var(--implied-proven-color);
+  cursor: pointer;
+}
+.landing_private_checkbox {
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+  font-size: 1.2rem;
+  grid-template-columns: 1em auto;
+  color: var(--text);
+  border: none;
+  display: inline-block;
 }

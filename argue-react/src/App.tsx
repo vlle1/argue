@@ -5,15 +5,16 @@ import { useState } from "react";
 
 function App() {
   const [statement, setStatement] = useState<string|null>(null);
+  const [privatePad, setPrivatePad] = useState<boolean>(false);
   return (
     <div className="App">
       {
-        statement ? <Game root_statement={statement}></Game> : <LandingPage setStatement={setStatement}></LandingPage>
+        statement ? <Game root_statement={statement} is_private={privatePad}></Game> : <LandingPage setStatement={setStatement} setPrivatePad={setPrivatePad}></LandingPage>
       }
     </div>
   );
 }
-const LandingPage = ({setStatement}: {setStatement: React.Dispatch<React.SetStateAction<string|null>>}) => {
+const LandingPage = ({setStatement, setPrivatePad}: {setStatement: React.Dispatch<React.SetStateAction<string|null>>, setPrivatePad: React.Dispatch<React.SetStateAction<boolean>>}) => {
   return (
     <div className="LandingPage">
       <h1>Welcome to argue-GPT!</h1>
@@ -24,6 +25,7 @@ const LandingPage = ({setStatement}: {setStatement: React.Dispatch<React.SetStat
           e.preventDefault();
           const formData = new FormData(e.target as HTMLFormElement);
           setStatement(formData.get("expression")?.toString() || "");
+          setPrivatePad(formData.get("private")?.toString() === "private");
         }}
       >
         <input
@@ -32,6 +34,10 @@ const LandingPage = ({setStatement}: {setStatement: React.Dispatch<React.SetStat
           name="expression"
           className="abs-in"
         ></input>
+        <input type="submit" className="landing_submit" value="Join/Create pad"></input>
+        <label htmlFor="private"className="landing_private_checkbox"><input type="checkbox" id="private" name="private" value="private"></input>
+        make private</label>
+        
       </form>
       <h2>
         How to use argue-GPT...

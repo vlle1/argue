@@ -51,7 +51,8 @@ type ClientMessage =
   | { Link: { premise: IndexDTO; conclusion: IndexDTO } }
   | { Unlink: { premise: IndexDTO; conclusion: IndexDTO } }
   | { ProveDirect: { id: IndexDTO } }
-  | { ProveImplication: { id: IndexDTO } };
+  | { ProveImplication: { id: IndexDTO } }
+  | "GetGameState";
 
 function toIndex(index: IndexDTO): Index {
   return `${index[0]},${index[1]}`;
@@ -81,30 +82,26 @@ function toGraphData(state: ServerGameState): GraphData {
   };
 }
 
-const Game = ({ root_statement }: { root_statement: string }) => {
+const Game = ({
+  root_statement,
+  is_private,
+}: {
+  root_statement: string;
+  is_private: boolean;
+}) => {
   // get address from env
   const address = process.env.REACT_APP_WEBSOCKET_URL as string;
-  const [socketUrl, setSocketUrl] = useState(address);
   const { sendJsonMessage, readyState, lastJsonMessage } = useWebSocket(
-    socketUrl,
+    encodeURI(`${address}/${root_statement}?private=${is_private}`),
     {
       onOpen: () => {
         console.log("WebSocket connection opened.");
-        let setCorrectRoot: ClientMessage = {
-          Edit: { id: [0, 0], statement: root_statement },
-        };
-        sendJsonMessage(setCorrectRoot);
+        let getGS: ClientMessage = "GetGameState";
+        sendJsonMessage(getGS);
       },
-      shouldReconnect: (_) => false,
+      shouldReconnect: (_) => true,
     }
   );
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: "Connecting",
-    [ReadyState.OPEN]: "Open",
-    [ReadyState.CLOSING]: "Closing",
-    [ReadyState.CLOSED]: "Closed",
-    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
-  }[readyState];
 
   const [graphData, setGraphData] = useState<GraphData>({
     nodes: [],
