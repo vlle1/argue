@@ -8,6 +8,9 @@ export type Node = {
   id: Index;
   statement: Index;
   state: StatementState;
+  fx?: number;
+  fy?: number;
+  fz?: number;
 };
 export type Link = {
   source: Index;
@@ -34,6 +37,9 @@ function updateGraph(
         used_node.state = new_node.state;
       } else {
         //add node
+        new_node.fx = 0;
+        new_node.fy = 0;
+        new_node.fz = 0;
         used_nodes.push(new_node);
       }
     }
