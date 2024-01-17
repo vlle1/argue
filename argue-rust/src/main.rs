@@ -1,8 +1,13 @@
+use std::sync::Arc;
+
 use axum::{
     routing::{get, get_service},
-    Router,
+    Router, extract::State,
 };
+use tokio::sync::Mutex;
 use tower_http::services::{ServeDir, ServeFile};
+
+use crate::socket_handler::AppState;
 
 mod openai;
 mod model;
@@ -20,7 +25,8 @@ async fn main() {
         .fallback(ServeFile::new("./argue-react/build/index.html"));
     let router = Router::new()
         .route("/ws", get(socket_handler::ws_route_handler))
-        .nest_service("/", get(get_service(static_service)));
+        .nest_service("/", get(get_service(static_service)))
+        .with_state(State::new(Arc::new(Mutex::new(AppState::default()))));
     //output the address
     //println!("WS: Listening on: ws://{}/ws", SOCKET_ADRESS);
     let ws_port = std::env::var("WS_PORT").unwrap();

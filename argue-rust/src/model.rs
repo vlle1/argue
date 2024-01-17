@@ -2,20 +2,20 @@ use std::env;
 use std::result::Result;
 use std::time::Instant;
 
-use axum::extract::ws::Message;
-use axum::extract::ws::WebSocket;
-use futures_util::stream::SplitSink;
-use futures_util::SinkExt;
+use crate::model::ClientMessage::*;
+use crate::openai;
 use generational_arena::Index;
 use serde::Deserialize;
 use serde::Serialize;
-use crate::model::ClientMessage::*;
-use crate::openai;
 
+use self::messenger::Messenger;
+use self::messenger::PlayerId;
 use self::proof::ProofError;
 use self::proof::ProofState;
 use self::proof::TreeState;
-mod proof;
+
+pub mod proof;
+pub mod messenger;
 
 #[derive(Serialize)]
 pub struct StatementDTO {
@@ -59,57 +59,14 @@ pub enum ClientMessage {
     ProveImplication { id: Index },
 }
 
-/// handles communication between client and server.
-pub struct Messenger {
-    pub sender: SplitSink<WebSocket, Message>,
-}
-
-impl Messenger {
-    async fn send(&mut self, msg: ServerMessage) {
-        let _ = self
-            .sender
-            .send(Message::Text(serde_json::to_string(&msg).unwrap()))
-            .await;
-    }
-    async fn send_cooldown(&mut self, seconds: u64) {
-        let _ = self.send(ServerMessage::AICooldown { seconds }).await;
-    }
-    async fn send_tree(&mut self, tree: &TreeState) {
-        //push game state to client(s)
-        let tree_dto: TreeStateDTO = tree.as_dto();
-        let _ = self.send(ServerMessage::GameState(tree_dto)).await;
-    }
-    async fn msg(&mut self, id: Index, comment: String, success: bool) {
-        //append message to node
-        let _ = self
-            .send(ServerMessage::Comment {
-                id,
-                comment,
-                success,
-            })
-            .await;
-    }
-    async fn msg_win(&mut self) {
-        let _ = self.send(ServerMessage::Win).await;
-    }
-    /* Methods to (in future) only reply to the client that triggered some command */
-    async fn reply(&mut self, msg: ServerMessage) {
-        self.send(msg).await;
-    }
-    async fn reply_tree(&mut self, tree: &TreeState) {
-        let tree_dto: TreeStateDTO = tree.as_dto();
-        let _ = self.reply(ServerMessage::GameState(tree_dto)).await;
-    }
-}
-
 pub struct GameState {
     tree: TreeState,
     ai: AI,
-    messenger: Messenger,
+    pub messenger: dyn Messenger,
 }
 
 impl GameState {
-    pub fn new(root_statement: String, messenger: Messenger) -> Self {
+    pub fn new(root_statement: String, messenger: dyn Messenger) -> Self {
         Self {
             tree: TreeState::new(root_statement),
             ai: AI {
@@ -124,7 +81,8 @@ impl GameState {
     }
 
     /// handle incoming messages from client(s). Returns a message to be sent only to the sender.
-    pub async fn on_incoming_message(&mut self, incoming_message: ClientMessage) {
+    pub async fn on_incoming_message(&mut self, incoming_message: ClientMessage, player_id: PlayerId) -> Option<ServerMessage> {
+        let _ = player_id;
         //remember if we want to push the tree (as long as no error happens)
         let state_change = &mut match incoming_message {
             Add { .. } | Delete { .. } | Link { .. } | Unlink { .. } | Edit { .. } => true,
@@ -135,11 +93,11 @@ impl GameState {
         let result: Result<(), ProofError> = match incoming_message {
             Add { statement } => {
                 let id = self.tree.add_node(statement);
-                self.messenger.reply(ServerMessage::NewNodeId(id)).await;
+                self.messenger.reply(ServerMessage::NewNodeId(id), player_id).await;
                 Ok(())
             }
             GetGameState => {
-                self.messenger.reply_tree(&self.tree).await;
+                self.messenger.reply_tree(&self.tree, player_id).await;
                 Ok(())
             }
             Link {
@@ -149,16 +107,14 @@ impl GameState {
             Unlink {
                 premise,
                 conclusion,
-            } => self.tree.unlink(conclusion,premise),
-            Delete { id } => {
-                    self.tree.remove_node(id)
-            }
+            } => self.tree.unlink(conclusion, premise),
+            Delete { id } => self.tree.remove_node(id),
             Edit { id, statement } => self.tree.change_node_statement(id, statement),
             ProveDirect { id } => self.prove_direct(id, state_change).await,
             ProveImplication { id } => self.prove_implication(id, state_change).await,
-        };        
+        };
         if let Err(e) = result {
-            self.messenger.reply(ServerMessage::Error(e)).await;
+            self.messenger.reply(ServerMessage::Error(e), player_id).await;
         } else {
             if *state_change {
                 self.messenger.send_tree(&self.tree).await;
@@ -167,10 +123,17 @@ impl GameState {
                 }
             }
         }
+        None
     }
 
-    pub async fn prove_direct(&mut self, id: Index, tree_changed: &mut bool) -> Result<(), ProofError> {
-        self.messenger.send_cooldown(self.ai.max_ai_cooldown_seconds).await;
+    pub async fn prove_direct(
+        &mut self,
+        id: Index,
+        tree_changed: &mut bool,
+    ) -> Result<(), ProofError> {
+        self.messenger
+            .send_cooldown(self.ai.max_ai_cooldown_seconds)
+            .await;
         match self.ai.check_statement(self.tree.get_statement(id)?).await {
             Ok(explanation) => {
                 self.tree.set_directly_proven(id);
@@ -183,12 +146,24 @@ impl GameState {
         }
         Ok(())
     }
-    pub async fn prove_implication(&mut self, id: Index, tree_changed: &mut bool) -> Result<(), ProofError> {
-        self.messenger.send_cooldown(self.ai.max_ai_cooldown_seconds).await;
+    pub async fn prove_implication(
+        &mut self,
+        id: Index,
+        tree_changed: &mut bool,
+    ) -> Result<(), ProofError> {
+        self.messenger
+            .send_cooldown(self.ai.max_ai_cooldown_seconds)
+            .await;
         let conclusion = self.tree.get_statement(id)?;
         let premises = self.tree.get_premises(id)?;
         if premises.len() == 0 {
-            self.messenger.msg(id, "You need to add at least one premise to prove an implication.".to_string(), false).await;
+            self.messenger
+                .msg(
+                    id,
+                    "You need to add at least one premise to prove an implication.".to_string(),
+                    false,
+                )
+                .await;
             return Ok(());
         }
         match self.ai.check_implication(&premises, conclusion).await {
