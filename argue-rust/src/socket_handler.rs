@@ -4,9 +4,11 @@ use axum::{
     extract::{
         ws::{Message, WebSocket},
         State, WebSocketUpgrade,
+        Path, Query,
     },
     response::Response,
 };
+use serde::Deserialize;
 use tokio::sync::Mutex;
 
 use crate::model::{
@@ -37,11 +39,18 @@ impl AppState {
     }
 }
 
+#[derive(Deserialize)]
+pub struct QueryParams {
+    #[serde(default)]
+    private: bool,
+}
+
 pub async fn ws_route_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<Mutex<AppState>>>,
+    statement: Option<Path<String>>,
+    Query(params): Query<QueryParams>,
 ) -> Response {
-    println!("ws_route_handler");
     ws.on_failed_upgrade(|error| {
         println!("failed to upgrade: {}", error);
         Response::builder()
@@ -49,7 +58,7 @@ pub async fn ws_route_handler(
             .body("failed to upgrade")
             .unwrap();
     })
-    .on_upgrade(|socket| handle_socket(socket, "".into(), true, state)) //FIXME parse root_statement
+    .on_upgrade(move |socket| handle_socket(socket, statement.map(|p| p.0).unwrap_or("".into()), params.private, state))
 }
 
 /// one method call = one websocket connection
@@ -60,7 +69,7 @@ async fn handle_socket(
     state: Arc<Mutex<AppState>>,
 ) {
     use futures_util::stream::StreamExt;
-    println!("handle socket");
+    println!("handle socket with {}, {}", root_statement, private);
     let (sender, mut receiver) = socket.split();
     //gamestate
     let (game_state, player_id) = if private {

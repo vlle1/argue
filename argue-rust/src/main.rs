@@ -24,6 +24,7 @@ async fn main() {
     let static_service = ServeDir::new("./argue-react/build")
         .fallback(ServeFile::new("./argue-react/build/index.html"));
     let router = Router::new()
+        .route("/ws/:statement", get(socket_handler::ws_route_handler))
         .route("/ws", get(socket_handler::ws_route_handler))
         .nest_service("/", get(get_service(static_service)))
         .with_state(Arc::new(Mutex::new(AppState::new())));

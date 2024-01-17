@@ -19,6 +19,11 @@ run `cargo run` in root folder
 
 
 ## Documentation
+The websocket url used determines if the client is playing privately or is using a public pad.\
+The ws url has an optional statement and an optional private parameter.
+It looks like this: `ws://BASE_URL/ws[/:statement][?private=:bool]`\
+Example: `ws://BASE_URL/ws/This+is+the+statement?private=true`
+The default `ws://BASE_URL/ws` is a public pad with root empty initial root statement.
 
 ## Client ws-messages
 ```json
