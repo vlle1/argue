@@ -2,19 +2,15 @@ use std::env;
 use std::result::Result;
 use std::time::Instant;
 
-use axum::extract::ws::Message;
-use axum::extract::ws::WebSocket;
+use crate::model::ClientMessage::*;
+
+use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
 use futures_util::SinkExt;
 use generational_arena::Index;
-use serde::Deserialize;
-use serde::Serialize;
-use crate::model::ClientMessage::*;
-use crate::openai;
+use serde::{Deserialize, Serialize};
 
-use self::proof::ProofError;
-use self::proof::ProofState;
-use self::proof::TreeState;
+use self::proof::{ProofError, ProofState, TreeState};
 mod proof;
 
 #[derive(Serialize)]
@@ -36,15 +32,9 @@ pub struct TreeStateDTO {
 pub enum ServerMessage {
     NewNodeId(Index),
     GameState(TreeStateDTO),
-    Comment {
-        id: Index,
-        comment: String,
-        success: bool,
-    },
+    Comment { id: Index, comment: String, success: bool },
     Win,
-    AICooldown {
-        seconds: u64,
-    },
+    AICooldown { seconds: u64 },
     Error(ProofError),
 }
 #[derive(Deserialize, Serialize)]
@@ -81,13 +71,7 @@ impl Messenger {
     }
     async fn msg(&mut self, id: Index, comment: String, success: bool) {
         //append message to node
-        let _ = self
-            .send(ServerMessage::Comment {
-                id,
-                comment,
-                success,
-            })
-            .await;
+        let _ = self.send(ServerMessage::Comment { id, comment, success }).await;
     }
     async fn msg_win(&mut self) {
         let _ = self.send(ServerMessage::Win).await;
@@ -142,21 +126,13 @@ impl GameState {
                 self.messenger.reply_tree(&self.tree).await;
                 Ok(())
             }
-            Link {
-                premise,
-                conclusion,
-            } => self.tree.link(conclusion, premise),
-            Unlink {
-                premise,
-                conclusion,
-            } => self.tree.unlink(conclusion,premise),
-            Delete { id } => {
-                    self.tree.remove_node(id)
-            }
+            Link { premise, conclusion } => self.tree.link(conclusion, premise),
+            Unlink { premise, conclusion } => self.tree.unlink(conclusion, premise),
+            Delete { id } => self.tree.remove_node(id),
             Edit { id, statement } => self.tree.change_node_statement(id, statement),
             ProveDirect { id } => self.prove_direct(id, state_change).await,
             ProveImplication { id } => self.prove_implication(id, state_change).await,
-        };        
+        };
         if let Err(e) = result {
             self.messenger.reply(ServerMessage::Error(e)).await;
         } else {
@@ -188,7 +164,13 @@ impl GameState {
         let conclusion = self.tree.get_statement(id)?;
         let premises = self.tree.get_premises(id)?;
         if premises.len() == 0 {
-            self.messenger.msg(id, "You need to add at least one premise to prove an implication.".to_string(), false).await;
+            self.messenger
+                .msg(
+                    id,
+                    "You need to add at least one premise to prove an implication.".to_string(),
+                    false,
+                )
+                .await;
             return Ok(());
         }
         match self.ai.check_implication(&premises, conclusion).await {
@@ -219,8 +201,7 @@ Important:\n
 - Always use this format for your answer.\n
 - Explain very briefly but exact, in one sentence.";
 const ÎMPLICATION_PRE: &str = "Assume, the following assumptions would all be true:\n";
-const IMPLICATION_MID: &str =
-    "Now, under this assumption, evaluate if the following statement is a consequence:\n";
+const IMPLICATION_MID: &str = "Now, under this assumption, evaluate if the following statement is a consequence:\n";
 impl AI {
     fn check_cooldown(&mut self) -> Result<(), String> {
         if self.cooldown_until > Instant::now() {
@@ -230,15 +211,11 @@ impl AI {
             ));
         }
         //set cooldown for the next 15 seconds.
-        self.cooldown_until =
-            Instant::now() + std::time::Duration::from_secs(self.max_ai_cooldown_seconds);
+        self.cooldown_until = Instant::now() + std::time::Duration::from_secs(self.max_ai_cooldown_seconds);
 
         Ok(())
     }
-    fn parse_ai_result(
-        &mut self,
-        ai_result: Result<String, reqwest::Error>,
-    ) -> Result<String, String> {
+    fn parse_ai_result(&mut self, ai_result: Result<String, reqwest::Error>) -> Result<String, String> {
         let result = match ai_result {
             Ok(msg) => msg,
             Err(e) => {
@@ -261,15 +238,9 @@ impl AI {
     async fn check_statement(&mut self, statement: &str) -> Result<String, String> {
         self.check_cooldown()?;
 
-        self.parse_ai_result(
-            openai::request(SYSTEM_MESSAGE_DIRECT.to_string(), statement.to_string()).await,
-        )
+        self.parse_ai_result(openai::request(SYSTEM_MESSAGE_DIRECT.to_string(), statement.to_string()).await)
     }
-    async fn check_implication(
-        &mut self,
-        premises: &[&str],
-        conclusion: &str,
-    ) -> Result<String, String> {
+    async fn check_implication(&mut self, premises: &[&str], conclusion: &str) -> Result<String, String> {
         self.check_cooldown()?;
         let user_message = format!(
             "{}{}{}{}",
@@ -278,8 +249,6 @@ impl AI {
             IMPLICATION_MID,
             conclusion
         );
-        self.parse_ai_result(
-            openai::request(SYSTEM_MESSAGE_IMPLICATION.to_string(), user_message).await,
-        )
+        self.parse_ai_result(openai::request(SYSTEM_MESSAGE_IMPLICATION.to_string(), user_message).await)
     }
 }

@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 struct OpenAIRequest {
     model: String,
     messages: Vec<Message>,
-
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,7 +23,6 @@ struct Choice {
 }
 
 pub async fn request(system_message: String, user_message: String) -> Result<String, reqwest::Error> {
-
     let messages: Vec<Message> = vec![
         Message {
             role: "system".to_owned(),
@@ -33,7 +31,7 @@ pub async fn request(system_message: String, user_message: String) -> Result<Str
         Message {
             role: "user".to_owned(),
             content: user_message,
-        }
+        },
     ];
     let dummyrequest = OpenAIRequest {
         model: "gpt-3.5-turbo".to_owned(),
@@ -41,10 +39,25 @@ pub async fn request(system_message: String, user_message: String) -> Result<Str
     };
 
     // post request:
-    let key = include_str!("../../../openai.key").trim();
-    let resp = reqwest::Client::new().post("https://api.openai.com/v1/chat/completions").header("Authorization", format!("Bearer {}", key)).json(&dummyrequest).send().await;
+    let key = include_str!("../../openai.key").trim();
+    let resp = reqwest::Client::new()
+        .post("https://api.openai.com/v1/chat/completions")
+        .header("Authorization", format!("Bearer {}", key))
+        .json(&dummyrequest)
+        .send()
+        .await;
+
     match resp.and_then(Response::error_for_status) {
-        Ok(resp) => Ok(resp.json::<OpenAIResponse>().await.unwrap().choices.into_iter().next().unwrap().message.content),
+        Ok(resp) => Ok(resp
+            .json::<OpenAIResponse>()
+            .await
+            .unwrap()
+            .choices
+            .into_iter()
+            .next()
+            .unwrap()
+            .message
+            .content),
         Err(e) => Err(e),
     }
 }
