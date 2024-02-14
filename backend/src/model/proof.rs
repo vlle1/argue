@@ -18,11 +18,9 @@ impl Display for ProofError {
         match self {
             ProofError::NoSuchNode(i) => write!(f, "No node with index {:?}.", i),
             ProofError::RemoveRoot => write!(f, "Tried to remove the root node."),
-            ProofError::AddExistingLink { child, parent } => write!(
-                f,
-                "Tried to add an existing link from {:?} to {:?}.",
-                child, parent
-            ),
+            ProofError::AddExistingLink { child, parent } => {
+                write!(f, "Tried to add an existing link from {:?} to {:?}.", child, parent)
+            }
             ProofError::RemoveNonExistentLink { child, parent } => write!(
                 f,
                 "Tried to remove a non-existent link from {:?} to {:?}.",
@@ -48,12 +46,10 @@ impl StatementNode {
             state: ProofState::None,
         }
     }
-    fn is_proven(&self) -> bool {
-        self.state.is_proven()
-    }
-    fn is_implied(&self) -> bool {
-        self.state.is_implied()
-    }
+
+    fn is_proven(&self) -> bool { self.state.is_proven() }
+
+    fn is_implied(&self) -> bool { self.state.is_implied() }
 }
 
 #[derive(Serialize, Clone)]
@@ -63,6 +59,7 @@ pub enum ProofState {
     ImpliedUnproven, // gpt accepts that it is a consequence
     ImpliedProven,
 }
+
 impl ProofState {
     fn is_proven(&self) -> bool {
         match self {
@@ -90,11 +87,9 @@ impl TreeState {
         let root = StatementNode::new(root_statement);
         let mut arena = Arena::new();
         let root_id = arena.insert(root);
-        Self {
-            arena,
-            root: root_id,
-        }
+        Self { arena, root: root_id }
     }
+
     pub fn as_dto(&self) -> TreeStateDTO {
         let mut statements = Vec::<StatementDTO>::new();
         for (id, node) in self.arena.iter() {
@@ -111,16 +106,16 @@ impl TreeState {
             root: self.root,
         }
     }
-    pub fn proof_complete(&self) -> bool {
-        self.is_proven(self.root).expect("Root must exist.")
-    }
+
+    pub fn proof_complete(&self) -> bool { self.is_proven(self.root).expect("Root must exist.") }
+
     pub fn is_proven(&self, id: Index) -> Result<bool, ProofError> {
         let n = self.get_node(id)?;
         Ok(n.is_proven())
     }
-    pub fn get_statement(&self, id: Index) -> Result<&str, ProofError> {
-        Ok(&self.get_node(id)?.statement)
-    }
+
+    pub fn get_statement(&self, id: Index) -> Result<&str, ProofError> { Ok(&self.get_node(id)?.statement) }
+
     pub fn get_premises(&self, id: Index) -> Result<Vec<&str>, ProofError> {
         let node = self.get_node(id)?;
         Ok(node
@@ -129,10 +124,12 @@ impl TreeState {
             .map(|&child| self.get_statement(child).unwrap())
             .collect())
     }
+
     pub fn add_node(&mut self, statement: String) -> Index {
         let node = StatementNode::new(statement);
         self.arena.insert(node)
     }
+
     /// remove any node. affects all ancestors.
     pub fn remove_node(&mut self, id: Index) -> Result<(), ProofError> {
         if id == self.root {
@@ -147,17 +144,15 @@ impl TreeState {
         }
         Ok(())
     }
+
     /// Change statement of a node. Does affect proof state.
-    pub fn change_node_statement(
-        &mut self,
-        id: Index,
-        new_statement: String,
-    ) -> Result<(), ProofError> {
+    pub fn change_node_statement(&mut self, id: Index, new_statement: String) -> Result<(), ProofError> {
         let node = self.get_node_mut(id)?;
         node.statement = new_statement;
         self.set_proof_state(id, ProofState::None);
         Ok(())
     }
+
     /// Create implication-link. Affects parent state.
     pub fn link(&mut self, parent_id: Index, child_id: Index) -> Result<(), ProofError> {
         if parent_id == child_id {
@@ -181,6 +176,7 @@ impl TreeState {
         }
         Ok(())
     }
+
     /// Remove implication-link. Affects parent state.
     pub fn unlink(&mut self, parent_id: Index, child_id: Index) -> Result<(), ProofError> {
         if parent_id == child_id {
@@ -203,10 +199,10 @@ impl TreeState {
         }
         Ok(())
     }
+
     /// AI accepts a statement by itself
-    pub fn set_directly_proven(&mut self, id: Index) {
-        self.set_proof_state(id, ProofState::DirectlyProven)
-    }
+    pub fn set_directly_proven(&mut self, id: Index) { self.set_proof_state(id, ProofState::DirectlyProven) }
+
     /// AI accepts a statement as a consequence its children
     pub fn set_implied(&mut self, id: Index) {
         let new = {
@@ -218,12 +214,15 @@ impl TreeState {
         };
         self.set_proof_state(id, new);
     }
+
     fn get_node(&self, id: Index) -> Result<&StatementNode, ProofError> {
         self.arena.get(id).ok_or(ProofError::NoSuchNode(id))
     }
+
     fn get_node_mut(&mut self, id: Index) -> Result<&mut StatementNode, ProofError> {
         self.arena.get_mut(id).ok_or(ProofError::NoSuchNode(id))
     }
+
     fn get2_node_mut(
         &mut self,
         id1: Index,
@@ -235,6 +234,7 @@ impl TreeState {
             _ => Err(ProofError::NoSuchNode(id2)),
         }
     }
+
     /// trickle up the proof state.
     fn set_proof_state(&mut self, id: Index, new_state: ProofState) {
         let node = self.get_node_mut(id).unwrap();

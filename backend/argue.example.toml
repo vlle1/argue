@@ -1,0 +1,14 @@
+address = "0.0.0.0:8000"
+server_dir = "../frontend/dist"
+
+[openai]
+enabled = false
+endpoint = "https://api.openai.com/v1/chat/completions"
+token = ""
+rate_limit = 2
+
+[google-gemini]
+enabled = false
+endpoint = ""
+token = ""
+rate_limit = 60
